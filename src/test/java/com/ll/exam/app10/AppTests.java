@@ -2,6 +2,7 @@ package com.ll.exam.app10;
 
 import com.ll.exam.app10.app.home.controller.HomerController;
 import com.ll.exam.app10.app.member.controller.MemberController;
+import com.ll.exam.app10.app.member.entity.Member;
 import com.ll.exam.app10.app.member.service.MemberService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -141,6 +142,17 @@ class AppTests {
         // 여기 마저 구현
 
         // 5번회원의 프로필 이미지 제거
+        resultActions
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/member/profile"))
+                .andExpect(handler().handlerType(MemberController.class))
+                .andExpect(handler().methodName("join"));
+
+        Member member = memberService.getMemberById(5L);
+
+        assertThat(member).isNotNull();
+
+        memberService.removeProfileImg(member);
 
     }
 }
