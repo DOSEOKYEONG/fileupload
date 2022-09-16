@@ -1,4 +1,4 @@
-package com.ll.exam.app10.app.base.entity;
+package com.ll.exam.app10.app.base;
 
 import com.ll.exam.app10.app.member.service.MemberService;
 import org.springframework.boot.CommandLineRunner;
