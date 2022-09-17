@@ -9,7 +9,10 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -79,10 +82,45 @@ public class MemberController {
 
     @GetMapping("/profile/img/{id}")
     public ResponseEntity<Object> showProfileImg(@PathVariable Long id) throws URISyntaxException {
-        URI redirectUri = new URI(memberService.getMemberById(id).getProfileImgUrl());
+        String profileImgUrl = memberService.getMemberById(id).getProfileImgUrl();
+
+        if ( profileImgUrl == null ) {
+            profileImgUrl = "https://via.placeholder.com/100x100.png?text=U_U";
+        }
+
+        URI redirectUri = new URI(profileImgUrl);
+
         HttpHeaders httpHeaders = new HttpHeaders();
         httpHeaders.setLocation(redirectUri);
         httpHeaders.setCacheControl(CacheControl.maxAge(60 * 60 * 1, TimeUnit.SECONDS));
         return new ResponseEntity<>(httpHeaders, HttpStatus.FOUND);
+    }
+
+    @GetMapping("/modify")
+    @PreAuthorize("isAuthenticated()")
+    public String showModify() {
+        return "member/modify";
+    }
+
+    @PreAuthorize("isAuthenticated()")
+    @PostMapping("/modify")
+    public String modify(String email, MultipartFile profileImg, @AuthenticationPrincipal MemberContext memberContext,
+                         String profileImg__delete) {
+
+        Member member = memberService.getMemberById(memberContext.getId());
+
+        if (profileImg__delete != null && profileImg__delete.equals("Y")) {
+            memberService.removeProfileImg(member);
+        }
+
+        // 기존에 세션에 저장된 MemberContext 객체의 내용을 수정하는 코드 시작
+        memberContext.setModifyDate(member.getModifyDate());
+        Authentication authentication = new UsernamePasswordAuthenticationToken(memberContext, member.getPassword(), memberContext.getAuthorities());
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+        // 기존에 세션에 저장된 MemberContext 객체의 내용을 수정하는 코드 끝
+
+        memberService.modify(member, email, profileImg);
+
+        return "redirect:/member/profile";
     }
 }

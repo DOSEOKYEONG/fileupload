@@ -1,6 +1,6 @@
 package com.ll.exam.app10;
 
-import com.ll.exam.app10.app.home.controller.HomerController;
+import com.ll.exam.app10.app.home.controller.HomeController;
 import com.ll.exam.app10.app.member.controller.MemberController;
 import com.ll.exam.app10.app.member.entity.Member;
 import com.ll.exam.app10.app.member.service.MemberService;
@@ -12,7 +12,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.core.io.Resource;
 import org.springframework.http.ResponseEntity;
 import org.springframework.mock.web.MockMultipartFile;
-import org.springframework.test.annotation.Rollback;
+import org.springframework.security.test.context.support.WithUserDetails;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
@@ -36,10 +36,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class AppTests {
 
     @Autowired
-    private MemberService memberService;
+    private MockMvc mvc;
 
     @Autowired
-    private MockMvc mvc;
+    private MemberService memberService;
 
     @Test
     @DisplayName("메인화면에서는 안녕이 나와야 한다.")
@@ -54,14 +54,13 @@ class AppTests {
         // 안녕
         resultActions
                 .andExpect(status().is2xxSuccessful())
-                .andExpect(handler().handlerType(HomerController.class))
-                .andExpect(handler().methodName("main"))
+                .andExpect(handler().handlerType(HomeController.class))
+                .andExpect(handler().methodName("showMain"))
                 .andExpect(content().string(containsString("안녕")));
     }
 
     @Test
     @DisplayName("회원의 수")
-    @Rollback(false)
     void t2() throws Exception {
         long count = memberService.count();
         assertThat(count).isGreaterThan(0);
@@ -69,13 +68,13 @@ class AppTests {
 
     @Test
     @DisplayName("user1로 로그인 후 프로필페이지에 접속하면 user1의 이메일이 보여야 한다.")
+    @WithUserDetails("user1")
     void t3() throws Exception {
         // WHEN
         // GET /
         ResultActions resultActions = mvc
                 .perform(
                         get("/member/profile")
-                                .with(user("user1").password("1234").roles("user"))
                 )
                 .andDo(print());
 
@@ -90,13 +89,13 @@ class AppTests {
 
     @Test
     @DisplayName("user4로 로그인 후 프로필페이지에 접속하면 user4의 이메일이 보여야 한다.")
+    @WithUserDetails("user4")
     void t4() throws Exception {
         // WHEN
         // GET /
         ResultActions resultActions = mvc
                 .perform(
                         get("/member/profile")
-                                .with(user("user4").password("1234").roles("user"))
                 )
                 .andDo(print());
 
@@ -138,10 +137,6 @@ class AppTests {
                                 .characterEncoding("UTF-8"))
                 .andDo(print());
 
-        // 5번회원이 생성되어야 함, 테스트
-        // 여기 마저 구현
-
-        // 5번회원의 프로필 이미지 제거
         resultActions
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/member/profile"))
@@ -153,6 +148,5 @@ class AppTests {
         assertThat(member).isNotNull();
 
         memberService.removeProfileImg(member);
-
     }
 }

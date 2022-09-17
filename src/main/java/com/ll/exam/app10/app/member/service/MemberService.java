@@ -38,25 +38,8 @@ public class MemberService {
     }
 
     public Member join(String username, String password, String email, MultipartFile profileImg) {
-        String profileImgDirName = "member/" + LocalDate.now();
 
-        profileImg.getOriginalFilename();
-
-        String ext = Util.file.getExt(profileImg.getOriginalFilename());
-
-        String fileName = UUID.randomUUID().toString() + "." + ext;
-        String profileImgDirPath = genFileDirPath + "/" + profileImgDirName;
-        String profileImgFilePath = profileImgDirPath + "/" + fileName;
-
-        new File(profileImgDirPath).mkdirs(); // 폴더가 혹시나 없다면 만들어준다.
-
-        try {
-            profileImg.transferTo(new File(profileImgFilePath));
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-
-        String profileImgRelPath = profileImgDirName + "/" + fileName;
+        String profileImgRelPath = saveProfileImg(profileImg);
 
         Member member = Member.builder()
                 .username(username)
@@ -105,5 +88,42 @@ public class MemberService {
 
     private String getCurrentProfileImgDirName() {
         return "member/" + LocalDate.now();
+    }
+
+    public void modify(Member member, String email, MultipartFile profileImg) {
+
+        member.setEmail(email);
+        member.setProfileImg(saveProfileImg(profileImg));
+
+        memberRepository.save(member);
+    }
+
+    private String saveProfileImg(MultipartFile profileImg) {
+
+        if ( profileImg == null || profileImg.isEmpty() ) {
+            return null;
+        }
+
+        String profileImgDirName = "member/" + LocalDate.now();
+
+        profileImg.getOriginalFilename();
+
+        String ext = Util.file.getExt(profileImg.getOriginalFilename());
+
+        String fileName = UUID.randomUUID().toString() + "." + ext;
+        String profileImgDirPath = genFileDirPath + "/" + profileImgDirName;
+        String profileImgFilePath = profileImgDirPath + "/" + fileName;
+
+        new File(profileImgDirPath).mkdirs(); // 폴더가 혹시나 없다면 만들어준다.
+
+        try {
+            profileImg.transferTo(new File(profileImgFilePath));
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
+        String profileImgRelPath = profileImgDirName + "/" + fileName;
+
+        return profileImgRelPath;
     }
 }
