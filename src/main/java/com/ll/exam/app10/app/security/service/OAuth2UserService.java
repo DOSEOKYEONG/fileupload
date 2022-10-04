@@ -6,8 +6,8 @@ import com.ll.exam.app10.app.member.repository.MemberRepository;
 import com.ll.exam.app10.app.member.service.MemberService;
 import com.ll.exam.app10.app.security.dto.MemberContext;
 import com.ll.exam.app10.app.security.exception.OAuthTypeMatchNotFoundException;
-import lombok.extern.slf4j.Slf4j;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -16,7 +16,6 @@ import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest;
 import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Service;
-
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;

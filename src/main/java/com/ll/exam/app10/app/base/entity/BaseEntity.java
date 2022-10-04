@@ -31,4 +31,8 @@ public class BaseEntity {
     private LocalDateTime createDate;
     @LastModifiedDate
     private LocalDateTime modifyDate;
+
+    public BaseEntity(Long id) {
+        this.id = id;
+    }
 }
