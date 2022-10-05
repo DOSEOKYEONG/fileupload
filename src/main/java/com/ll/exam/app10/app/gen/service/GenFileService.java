@@ -1,12 +1,13 @@
-package com.ll.exam.app10.app.fileupload.service;
+package com.ll.exam.app10.app.gen.service;
 
 import com.ll.exam.app10.app.article.entity.Article;
 import com.ll.exam.app10.app.base.AppConfig;
 import com.ll.exam.app10.app.base.Dto.RsData;
-import com.ll.exam.app10.app.fileupload.entity.GenFile;
-import com.ll.exam.app10.app.fileupload.repository.GenFileRepository;
+import com.ll.exam.app10.app.gen.entity.GenFile;
+import com.ll.exam.app10.app.gen.repository.GenFileRepository;
 import com.ll.exam.app10.app.util.Util.Util;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -21,6 +22,7 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class GenFileService {
 
     private final GenFileRepository genFileRepository;
@@ -172,5 +174,49 @@ public class GenFileService {
                         (genFile1, genFile2) -> genFile1,
                         LinkedHashMap::new
                 ));
+    }
+
+    public void deleteFiles(Article article, Map<String, String> params) {
+        log.debug("params : " + params);
+
+        List<String> deleteFilesArgs = params.keySet().stream()
+                .filter(key -> key.startsWith("delete___"))
+                .map(key -> key.replace("delete___", ""))
+                .collect(Collectors.toList());
+
+        deleteFiles(article, deleteFilesArgs);
+    }
+
+    public void deleteFiles(Article article, List<String> params) {
+
+        String relTypeCode = "article";
+        Long relId = article.getId();
+
+        params.stream()
+                .forEach(key ->{
+                    String[] keyBits = key.split("__");
+
+
+                    String typeCode = keyBits[0];
+                    String type2Code = keyBits[1];
+                    int fileNo = Integer.parseInt(keyBits[2]);
+
+                    Optional<GenFile> optionalGenFile = genFileRepository.findByRelTypeCodeAndRelIdAndTypeCodeAndType2CodeAndFileNo(relTypeCode, relId, typeCode,
+                            type2Code, fileNo);
+
+                    if (optionalGenFile.isPresent()) {
+                        delete(optionalGenFile.get());
+                    }
+                });
+
+    }
+
+    private void delete(GenFile genFile) {
+        deleteFileFromStorage(genFile);
+        genFileRepository.delete(genFile);
+    }
+
+    public Optional<GenFile> getById(Long id) {
+        return genFileRepository.findById(id);
     }
 }
