@@ -6,10 +6,13 @@ import com.ll.exam.app10.app.article.service.ArticleService;
 import com.ll.exam.app10.app.base.Dto.RsData;
 import com.ll.exam.app10.app.fileupload.entity.GenFile;
 import com.ll.exam.app10.app.fileupload.service.GenFileService;
+import com.ll.exam.app10.app.member.service.MemberService;
 import com.ll.exam.app10.app.security.dto.MemberContext;
 import com.ll.exam.app10.app.util.Util.Util;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.PermissionDeniedDataAccessException;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
@@ -21,6 +24,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.multipart.MultipartRequest;
+import org.springframework.web.server.ResponseStatusException;
 
 import javax.validation.Valid;
 import java.util.Map;
@@ -32,8 +36,17 @@ import java.util.Map;
 public class ArticleController {
 
     private final ArticleService articleService;
-
     private final GenFileService genFileService;
+
+    @PreAuthorize("isAuthenticated()")
+    @GetMapping("/{id}")
+    public String showDetail(Model model, @PathVariable Long id) {
+        Article article = articleService.getForPrintArticleById(id);
+        model.addAttribute("article", article);
+
+        return "article/detail";
+    }
+
 
     @PreAuthorize("isAuthenticated()")
     @GetMapping("/write")
@@ -45,9 +58,6 @@ public class ArticleController {
     @PostMapping("/write")
     public String write(@AuthenticationPrincipal MemberContext memberContext, @Valid ArticleForm articleForm, BindingResult bindingResult
             , MultipartRequest multipartRequest) {
-        if (bindingResult.hasErrors()) {
-            return "article/write";
-        }
 
         Map<String, MultipartFile> fileMap = multipartRequest.getFileMap();
 
@@ -63,11 +73,38 @@ public class ArticleController {
         return "redirect:/article/%d?msg=%s".formatted(article.getId(), msg);
     }
 
-    @GetMapping("/{id}")
-    public String showDetail(Model model, @PathVariable Long id) {
-        Article article = articleService.getArticleById(id);
+    @PreAuthorize("isAuthenticated()")
+    @GetMapping("/{id}/modify")
+    public String showModify(@AuthenticationPrincipal MemberContext memberContext, Model model, @PathVariable Long id) {
+        Article article = articleService.getForPrintArticleById(id);
+
+        if (memberContext.memberIsNot(article.getAuthor())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN);
+        }
+
         model.addAttribute("article", article);
 
-        return "article/detail";
+        return "article/modify";
+    }
+
+    @PreAuthorize("isAuthenticated()")
+    @PostMapping("/{id}/modify")
+    public String modify(@AuthenticationPrincipal MemberContext memberContext, Model model, @PathVariable Long id,
+                         @Valid ArticleForm articleForm, BindingResult bindingResult, MultipartRequest multipartRequest) {
+        Article article = articleService.getForPrintArticleById(id);
+
+        if (memberContext.memberIsNot(article.getAuthor())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN);
+        }
+
+        Map<String, MultipartFile> fileMap = multipartRequest.getFileMap();
+
+        RsData<Map<String, GenFile>> saveFilesRsData = genFileService.saveFiles(article, fileMap);
+
+        articleService.modify(article, articleForm.getSubject(), articleForm.getContent());
+
+        String msg = Util.url.encode("%d번 게시물이 수정되었습니다.".formatted(id));
+
+        return "redirect:/article/%d?msg=%s".formatted(id, msg);
     }
 }

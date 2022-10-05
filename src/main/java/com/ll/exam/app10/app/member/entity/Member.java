@@ -1,5 +1,6 @@
 package com.ll.exam.app10.app.member.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.ll.exam.app10.app.base.AppConfig;
 import com.ll.exam.app10.app.base.entity.BaseEntity;
 import lombok.AllArgsConstructor;
@@ -23,6 +24,7 @@ public class Member extends BaseEntity {
     @Column(unique = true)
     private String username;
 
+    @JsonIgnore
     private String password;
 
     private String email;

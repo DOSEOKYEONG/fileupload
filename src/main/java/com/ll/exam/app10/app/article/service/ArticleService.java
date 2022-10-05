@@ -2,10 +2,13 @@ package com.ll.exam.app10.app.article.service;
 
 import com.ll.exam.app10.app.article.entity.Article;
 import com.ll.exam.app10.app.article.repository.ArticleRepository;
+import com.ll.exam.app10.app.fileupload.entity.GenFile;
 import com.ll.exam.app10.app.fileupload.service.GenFileService;
 import com.ll.exam.app10.app.member.entity.Member;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -38,5 +41,22 @@ public class ArticleService {
 
     public void addGenFileByUrl(Article article, String typeCode, String type2Code, int fileNo, String url) {
         genFileService.addGenFileByUrl("article", article.getId(), typeCode, type2Code, fileNo, url);
+    }
+
+    public Article getForPrintArticleById(Long id) {
+        Article article = getArticleById(id);
+
+        Map<String, GenFile> genFileMap = genFileService.getRelGenFileMap(article);
+
+        article.getExtra().put("genFileMap", genFileMap);
+
+        return article;
+    }
+
+    public void modify(Article article, String subject, String content) {
+        article.setSubject(subject);
+        article.setContent(content);
+
+        articleRepository.save(article);
     }
 }

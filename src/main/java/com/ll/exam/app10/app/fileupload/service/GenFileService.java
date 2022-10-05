@@ -8,6 +8,7 @@ import com.ll.exam.app10.app.fileupload.repository.GenFileRepository;
 import com.ll.exam.app10.app.util.Util.Util;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
@@ -15,9 +16,8 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.time.LocalDate;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -69,7 +69,7 @@ public class GenFileService {
                     .originFileName(originFileName)
                     .build();
 
-            genFileRepository.save(genFile);
+            genFile = save(genFile);
 
             String filePath = AppConfig.GET_FILE_DIR_PATH + "/" + fileDir + "/" + genFile.getFileName();
 
@@ -125,7 +125,7 @@ public class GenFileService {
                 .originFileName(originFileName)
                 .build();
 
-        genFileRepository.save(genFile);
+        genFile = save(genFile);
 
         String filePath = AppConfig.GET_FILE_DIR_PATH + "/" + fileDir + "/" + genFile.getFileName();
 
@@ -134,5 +134,43 @@ public class GenFileService {
         file.getParentFile().mkdirs();
 
         downloadedFile.renameTo(file);
+    }
+
+    @Transactional
+    public GenFile save(GenFile genFile) {
+        Optional<GenFile> optionalGenFile = genFileRepository.findByRelTypeCodeAndRelIdAndTypeCodeAndType2CodeAndFileNo(
+                genFile.getRelTypeCode(), genFile.getRelId(), genFile.getTypeCode(), genFile.getType2Code(), genFile.getFileNo());
+
+        if (optionalGenFile.isPresent()) {
+            GenFile oldGenFile = optionalGenFile.get();
+
+            deleteFileFromStorage(oldGenFile);
+
+            oldGenFile.merge(genFile);
+
+            genFileRepository.save(oldGenFile);
+
+            return oldGenFile;
+        }
+
+        genFileRepository.save(genFile);
+        return genFile;
+    }
+
+    private void deleteFileFromStorage(GenFile genFile) {
+        new File(genFile.getFilePath()).delete();
+    }
+
+    public Map<String, GenFile> getRelGenFileMap(Article article) {
+        List<GenFile> genFiles = genFileRepository.findByRelTypeCodeAndRelId("article", article.getId());
+
+        return genFiles
+                .stream()
+                .collect(Collectors.toMap(
+                        genFile -> genFile.getTypeCode() + "__" + genFile.getType2Code() + "__" + genFile.getFileNo(),
+                        genFile -> genFile,
+                        (genFile1, genFile2) -> genFile1,
+                        LinkedHashMap::new
+                ));
     }
 }
